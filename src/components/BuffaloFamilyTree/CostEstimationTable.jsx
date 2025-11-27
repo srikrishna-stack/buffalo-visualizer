@@ -95,7 +95,7 @@ const CostEstimationTable = ({
       totalBuffaloes: yearData.totalBuffaloes,
       assetValue: yearData.totalBuffaloes * BUFFALO_PRICE,
       //cpfValue: treeData.units * CPF_PER_UNIT, // CPF remains constant
-      totalAssetValue: (yearData.totalBuffaloes * BUFFALO_PRICE) + (treeData.units * CPF_PER_UNIT)
+      totalAssetValue: (yearData.totalBuffaloes * BUFFALO_PRICE)
     }));
   };
 
@@ -364,7 +364,7 @@ const CostEstimationTable = ({
                 <th className="px-6 py-4 text-left font-bold text-gray-700 border-b">Year</th>
                 <th className="px-6 py-4 text-left font-bold text-gray-700 border-b">Total Buffaloes</th>
                 <th className="px-6 py-4 text-left font-bold text-gray-700 border-b">Buffalo Value</th>
-                <th className="px-6 py-4 text-left font-bold text-gray-700 border-b">CPF Value</th>
+             
                 <th className="px-6 py-4 text-left font-bold text-gray-700 border-b">Total Asset Value</th>
               </tr>
             </thead>
@@ -381,9 +381,7 @@ const CostEstimationTable = ({
                   <td className="px-6 py-4 border-b font-semibold text-blue-600">
                     {formatCurrency(data.assetValue)}
                   </td>
-                  <td className="px-6 py-4 border-b font-semibold text-green-600">
-                    {formatCurrency(data.cpfValue)}
-                  </td>
+                
                   <td className="px-6 py-4 border-b font-semibold text-orange-600">
                     {formatCurrency(data.totalAssetValue)}
                   </td>
