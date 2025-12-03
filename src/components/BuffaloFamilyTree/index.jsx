@@ -1,8 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import HeaderControls from './HeaderControls';
 import TreeVisualization from './TreeVisualization';
-import CostEstimationTable from './CostEstimationTable';
-import { formatCurrency, formatNumber } from './CommonComponents';
 
 export default function BuffaloFamilyTree() {
   const [units, setUnits] = useState(1);
@@ -14,32 +11,39 @@ export default function BuffaloFamilyTree() {
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [showCostEstimation, setShowCostEstimation] = useState(false);
-  const [activeGraph, setActiveGraph] = useState("revenue");
-  
+
+  const runSimulationFromFlutter = (unitsVal, yearsVal, startYearVal, startMonthVal) => {
+    console.log('runSimulationFromFlutter called with:', { unitsVal, yearsVal, startYearVal, startMonthVal });
+    setUnits(unitsVal);
+    setYears(yearsVal);
+    setStartYear(startYearVal);
+    setStartMonth(startMonthVal);
+    
+    // Call runSimulation directly with the parameters
+    runSimulation(unitsVal, yearsVal, startYearVal, startMonthVal);
+  };
+
   const containerRef = useRef(null);
   const treeContainerRef = useRef(null);
 
-  // NEW: Staggered revenue configuration
+  // Staggered revenue configuration
   const revenueConfig = {
-    landingPeriod: 2, // months for each buffalo
-    highRevenuePhase: { months: 5, revenue: 9000 }, // 5 months of high revenue
-    mediumRevenuePhase: { months: 3, revenue: 6000 }, // 3 months of medium revenue
-    restPeriod: { months: 4, revenue: 0 } // 4 months rest
+    landingPeriod: 2,
+    highRevenuePhase: { months: 5, revenue: 9000 },
+    mediumRevenuePhase: { months: 3, revenue: 6000 },
+    restPeriod: { months: 4, revenue: 0 }
   };
 
-  // NEW: Calculate monthly revenue for EACH buffalo based on its individual cycle
-  const calculateMonthlyRevenueForBuffalo = (buffaloId, acquisitionMonth, currentYear, currentMonth) => {
-    // Each buffalo starts its cycle from its acquisition month
-    const monthsSinceAcquisition = (currentYear - startYear) * 12 + (currentMonth - acquisitionMonth);
+  // Calculate monthly revenue for EACH buffalo based on its individual cycle
+  const calculateMonthlyRevenueForBuffalo = (buffaloId, acquisitionMonth, currentYear, currentMonth, startYearVal) => {
+    const monthsSinceAcquisition = (currentYear - startYearVal) * 12 + (currentMonth - acquisitionMonth);
     
-    // First 2 months after acquisition are landing/rest
     if (monthsSinceAcquisition < revenueConfig.landingPeriod) {
       return 0;
     }
     
     const productionMonths = monthsSinceAcquisition - revenueConfig.landingPeriod;
-    const cyclePosition = productionMonths % 12; // 12-month cycle
+    const cyclePosition = productionMonths % 12;
     
     if (cyclePosition < revenueConfig.highRevenuePhase.months) {
       return revenueConfig.highRevenuePhase.revenue;
@@ -50,19 +54,16 @@ export default function BuffaloFamilyTree() {
     }
   };
 
-  // UPDATED: Calculate annual revenue for ALL mature buffaloes with individual cycles
-  const calculateAnnualRevenueForHerd = (herd, startYear, startMonth, currentYear) => {
+  // Calculate annual revenue for ALL mature buffaloes with individual cycles
+  const calculateAnnualRevenueForHerd = (herd, startYearVal, startMonthVal, currentYear) => {
     let annualRevenue = 0;
     
-    // Count mature buffaloes (age >= 3) in current year
     const matureBuffaloes = herd.filter(buffalo => {
       const ageInCurrentYear = currentYear - buffalo.birthYear;
       return ageInCurrentYear >= 3;
     });
 
-    // Calculate revenue for each mature buffalo with its individual cycle
-    matureBuffaloes.forEach((buffalo, index) => {
-      // Stagger acquisition: first buffalo in Jan (0), second in July (6)
+    matureBuffaloes.forEach((buffalo) => {
       const acquisitionMonth = buffalo.acquisitionMonth;
       
       for (let month = 0; month < 12; month++) {
@@ -70,7 +71,8 @@ export default function BuffaloFamilyTree() {
           buffalo.id, 
           acquisitionMonth, 
           currentYear, 
-          month
+          month,
+          startYearVal
         );
       }
     });
@@ -82,8 +84,8 @@ export default function BuffaloFamilyTree() {
     };
   };
 
-  // UPDATED: Calculate total revenue data based on ACTUAL herd growth with staggered cycles
-  const calculateRevenueData = (herd, startYear, startMonth, totalYears) => {
+  // Calculate total revenue data based on ACTUAL herd growth with staggered cycles
+  const calculateRevenueData = (herd, startYearVal, startMonthVal, totalYears) => {
     const yearlyData = [];
     let totalRevenue = 0;
     let totalMatureBuffaloYears = 0;
@@ -92,10 +94,10 @@ export default function BuffaloFamilyTree() {
                        "July", "August", "September", "October", "November", "December"];
 
     for (let yearOffset = 0; yearOffset < totalYears; yearOffset++) {
-      const currentYear = startYear + yearOffset;
+      const currentYear = startYearVal + yearOffset;
       
       const { annualRevenue, matureBuffaloes, totalBuffaloes } = 
-        calculateAnnualRevenueForHerd(herd, startYear, startMonth, currentYear);
+        calculateAnnualRevenueForHerd(herd, startYearVal, startMonthVal, currentYear);
 
       totalRevenue += annualRevenue;
       totalMatureBuffaloYears += matureBuffaloes;
@@ -110,8 +112,8 @@ export default function BuffaloFamilyTree() {
         totalBuffaloes: totalBuffaloes,
         producingBuffaloes: matureBuffaloes,
         nonProducingBuffaloes: totalBuffaloes - matureBuffaloes,
-        startMonth: monthNames[startMonth],
-        startYear: startYear,
+        startMonth: monthNames[startMonthVal],
+        startYear: startYearVal,
         matureBuffaloes: matureBuffaloes
       });
     }
@@ -126,25 +128,27 @@ export default function BuffaloFamilyTree() {
     };
   };
 
-  // UPDATED: Simulation logic with staggered acquisition months
-  const runSimulation = () => {
+  // Simulation logic with staggered acquisition months
+  const runSimulation = (unitsVal = units, yearsVal = years, startYearVal = startYear, startMonthVal = startMonth) => {
+    console.log('Running simulation with:', { unitsVal, yearsVal, startYearVal, startMonthVal });
+    
     setLoading(true);
     setTimeout(() => {
-      const totalYears = Number(years);
+      const totalYears = Number(yearsVal);
       const herd = [];
       let nextId = 1;
 
       // Create initial buffaloes (2 per unit) with staggered acquisition
-      for (let u = 0; u < units; u++) {
-        // First buffalo - acquired in January
+      for (let u = 0; u < unitsVal; u++) {
+        // First buffalo - acquired in starting month
         herd.push({
           id: nextId++,
           age: 3,
           mature: true,
           parentId: null,
           generation: 0,
-          birthYear: startYear - 3,
-          acquisitionMonth: startMonth, // January (0)
+          birthYear: startYearVal - 3,
+          acquisitionMonth: startMonthVal,
           unit: u + 1,
         });
 
@@ -155,15 +159,15 @@ export default function BuffaloFamilyTree() {
           mature: true,
           parentId: null,
           generation: 0,
-          birthYear: startYear - 3,
-          acquisitionMonth: (startMonth + 6) % 12, // July (6)
+          birthYear: startYearVal - 3,
+          acquisitionMonth: (startMonthVal + 6) % 12,
           unit: u + 1,
         });
       }
 
       // Simulate years
       for (let year = 1; year <= totalYears; year++) {
-        const currentYear = startYear + (year - 1);
+        const currentYear = startYearVal + (year - 1);
         const matureBuffaloes = herd.filter((b) => b.age >= 3);
 
         // Each mature buffalo gives birth to one offspring per year
@@ -174,7 +178,7 @@ export default function BuffaloFamilyTree() {
             mature: false,
             parentId: parent.id,
             birthYear: currentYear,
-            acquisitionMonth: parent.acquisitionMonth, // Inherit parent's cycle
+            acquisitionMonth: parent.acquisitionMonth,
             generation: parent.generation + 1,
             unit: parent.unit,
           });
@@ -188,13 +192,13 @@ export default function BuffaloFamilyTree() {
       }
 
       // Calculate revenue data based on ACTUAL herd growth with staggered cycles
-      const revenueData = calculateRevenueData(herd, startYear, startMonth, totalYears);
+      const revenueData = calculateRevenueData(herd, startYearVal, startMonthVal, totalYears);
 
       setTreeData({
-        units,
-        years,
-        startYear,
-        startMonth,
+        units: unitsVal,
+        years: yearsVal,
+        startYear: startYearVal,
+        startMonth: startMonthVal,
         totalBuffaloes: herd.length,
         buffaloes: herd,
         revenueData: revenueData
@@ -204,32 +208,6 @@ export default function BuffaloFamilyTree() {
       setZoom(1);
       setPosition({ x: 0, y: 0 });
     }, 300);
-  };
-
-  // Reset function
-  const resetSimulation = () => {
-    setTreeData(null);
-    setUnits(1);
-    setYears(10);
-    setStartYear(2026);
-    setStartMonth(0);
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
-    setShowCostEstimation(false);
-  };
-
-  // Zoom controls
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.1, 2));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.1, 0.5));
-  };
-
-  const handleResetView = () => {
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
   };
 
   // Drag to pan functionality
@@ -256,6 +234,23 @@ export default function BuffaloFamilyTree() {
     return () => document.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
+  useEffect(() => {
+    const handler = (event) => {
+      console.log('Message received from Flutter:', event.data);
+      
+      if (!event.data) return;
+
+      if (event.data.type === "RUN_SIMULATION") {
+        console.log('Running simulation with data:', event.data.payload);
+        const { units, years, startYear, startMonth } = event.data.payload;
+        runSimulationFromFlutter(units, years, startYear, startMonth);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -266,38 +261,8 @@ export default function BuffaloFamilyTree() {
     );
   }
 
-  if (showCostEstimation) {
-    return (
-      <CostEstimationTable 
-        treeData={treeData}
-        activeGraph={activeGraph}
-        setActiveGraph={setActiveGraph}
-        setShowCostEstimation={setShowCostEstimation}
-      />
-    );
-  }
-
   return (
     <div className="h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col overflow-hidden">
-      <HeaderControls
-        units={units}
-        setUnits={setUnits}
-        years={years}
-        setYears={setYears}
-        startYear={startYear}
-        setStartYear={setStartYear}
-        startMonth={startMonth}
-        setStartMonth={setStartMonth}
-        runSimulation={runSimulation}
-        treeData={treeData}
-        resetSimulation={resetSimulation}
-        setShowCostEstimation={setShowCostEstimation}
-        handleZoomIn={handleZoomIn}
-        handleZoomOut={handleZoomOut}
-        handleResetView={handleResetView}
-        zoom={zoom}
-      />
-      
       <TreeVisualization
         treeData={treeData}
         zoom={zoom}
@@ -308,7 +273,6 @@ export default function BuffaloFamilyTree() {
         handleMouseUp={handleMouseUp}
         containerRef={containerRef}
         treeContainerRef={treeContainerRef}
-        onShowCostEstimation={() => setShowCostEstimation(true)}
       />
     </div>
   );

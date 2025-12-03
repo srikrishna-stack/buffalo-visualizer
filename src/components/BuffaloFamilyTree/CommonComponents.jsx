@@ -30,7 +30,7 @@ export const buildTree = (root, all) => {
   return all.filter((b) => b.parentId === root.id);
 };
 
-// Buffalo Node Component - Updated to accept displayName prop
+// Buffalo Node Component
 export const BuffaloNode = ({ data, founder, displayName }) => (
   <div className="flex flex-col items-center group relative">
     <div
@@ -59,7 +59,7 @@ export const BuffaloNode = ({ data, founder, displayName }) => (
   </div>
 );
 
-// Curved Arrow Component (unchanged)
+// Curved Arrow Component
 export const CurvedArrow = ({ flip, hasSiblings, index }) => {
   const strokeColor = "#4F46E5";
   const strokeWidth = 2;
@@ -107,7 +107,7 @@ export const CurvedArrow = ({ flip, hasSiblings, index }) => {
   );
 };
 
-// Tree Branch Component - Updated to pass getDisplayName
+// Tree Branch Component
 export const TreeBranch = ({ parent, all, level = 0, getDisplayName }) => {
   const kids = buildTree(parent, all);
   if (kids.length === 0) return null;
