@@ -2,6 +2,17 @@ import React from 'react';
 import { Move } from "lucide-react";
 import { BuffaloNode, TreeBranch } from './CommonComponents';
 
+const lineColors = [
+  "#ff9800", // gen 0 → 1
+  "#3f51b5",
+  "#009688",
+  "#e91e63",
+  "#f44336",
+  "#9c27b0",
+  "#4caf50"
+];
+
+
 const TreeVisualization = ({
   treeData,
   zoom,
@@ -120,6 +131,8 @@ const TreeVisualization = ({
                       data={founder} 
                       founder 
                       displayName={getBuffaloDisplayName(founder)}
+                      elementId={`buffalo-${founder.id}`}
+
                     />
                     <TreeBranch 
                       parent={founder} 

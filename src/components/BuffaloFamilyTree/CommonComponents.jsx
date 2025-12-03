@@ -1,5 +1,18 @@
 import React from 'react';
 
+
+import Xarrow from "react-xarrows";
+
+const lineColors = [
+  "#ff9800",
+  "#3f51b5",
+  "#009688",
+  "#e91e63",
+  "#f44336",
+  "#9c27b0",
+  "#4caf50",
+];
+
 // Colors array for different generations
 export const colors = [
   "bg-gradient-to-br from-amber-400 to-amber-600",
@@ -31,12 +44,13 @@ export const buildTree = (root, all) => {
 };
 
 // Buffalo Node Component
-export const BuffaloNode = ({ data, founder, displayName }) => (
-  <div className="flex flex-col items-center group relative">
+export const BuffaloNode = ({ data, founder, displayName, elementId }) => (
+  <div id={elementId} className="flex flex-col items-center group relative">
     <div
-      className={`${
-        colors[data.generation % colors.length]
-      } rounded-full w-16 h-16 flex flex-col justify-center items-center text-white shadow-lg transform transition-all duration-200 hover:scale-110 border-2 border-white`}
+      className={`${colors[data.generation % colors.length]}
+        rounded-full w-16 h-16 flex flex-col justify-center items-center
+        text-white shadow-lg transform transition-all duration-200
+        hover:scale-110 border-2 border-white`}
     >
       <div className="text-sm font-bold">
         {founder ? displayName : data.birthYear}
@@ -58,6 +72,7 @@ export const BuffaloNode = ({ data, founder, displayName }) => (
     </div>
   </div>
 );
+
 
 // Curved Arrow Component
 export const CurvedArrow = ({ flip, hasSiblings, index }) => {
@@ -107,43 +122,56 @@ export const CurvedArrow = ({ flip, hasSiblings, index }) => {
   );
 };
 
-// Tree Branch Component
 export const TreeBranch = ({ parent, all, level = 0, getDisplayName }) => {
   const kids = buildTree(parent, all);
   if (kids.length === 0) return null;
 
   return (
-    <div className="flex flex-col items-center mt-4">
-      {kids.length === 1 ? (
-        <div className="flex flex-col items-center">
-          <CurvedArrow flip={false} hasSiblings={false} />
-          <div className="mt-1">
-            <BuffaloNode data={kids[0]} displayName={getDisplayName(kids[0])} />
-          </div>
-          <TreeBranch parent={kids[0]} all={all} level={level + 1} getDisplayName={getDisplayName} />
-        </div>
-      ) : (
-        <div className="flex flex-col items-center">
-          <div className="relative mb-2">
-            <div className="absolute top-0 left-2 right-2 h-0.5 bg-indigo-400 transform -translate-y-full"></div>
-          </div>
-          <div className="flex gap-4 justify-center">
-            {kids.map((child, i) => (
-              <div key={child.id} className="flex flex-col items-center">
-                <CurvedArrow 
-                  flip={i === kids.length - 1} 
-                  hasSiblings={kids.length > 1}
-                  index={i}
-                />
-                <div className="mt-1">
-                  <BuffaloNode data={child} displayName={getDisplayName(child)} />
-                </div>
-                <TreeBranch parent={child} all={all} level={level + 1} getDisplayName={getDisplayName} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="flex flex-col items-center mt-8">
+      {/* Connecting line from parent */}
+      <div className="h-12 w-0.5 bg-gradient-to-b from-gray-300 to-gray-400"></div>
+      
+      <div className="flex gap-8 justify-center items-start relative">
+        {kids.map((child, index) => {
+          const parentId = `buffalo-${parent.id}`;
+          const childId = `buffalo-${child.id}`;
+
+          return (
+            <div key={child.id} className="flex flex-col items-center relative">
+              {/* Child Node */}
+              <BuffaloNode
+                data={child}
+                displayName={getDisplayName(child)}
+                elementId={childId}
+              />
+
+              {/* Recursive children */}
+              <TreeBranch
+                parent={child}
+                all={all}
+                level={level + 1}
+                getDisplayName={getDisplayName}
+              />
+
+              {/* Line between parent → child */}
+              <Xarrow
+                start={parentId}
+                end={childId}
+                color={lineColors[parent.generation % lineColors.length]}
+                strokeWidth={2.5}
+                curveness={0.8}
+                showHead={true}
+                headSize={4}
+                path="smooth"
+                dashness={false}
+                startAnchor="bottom"
+                endAnchor="top"
+                zIndex={0}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
